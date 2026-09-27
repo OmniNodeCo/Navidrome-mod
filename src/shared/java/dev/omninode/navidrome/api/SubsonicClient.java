@@ -263,7 +263,7 @@ public final class SubsonicClient implements AutoCloseable {
         });
     }
 
-    public CompletableFuture<List<Song>> favorites() { return starred(null).thenApply(Starred::songs); }
+    public CompletableFuture<List<Song>> favorites() { return starred((String) null).thenApply(Starred::songs); }
 
     public CompletableFuture<List<Playlist>> playlists() {
         return call("getPlaylists", args()).thenApply(root ->
