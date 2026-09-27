@@ -2,7 +2,7 @@
 
 An in-game **client for an existing Navidrome / OpenSubsonic server**. The music library, users, indexing, playlists and transcoding remain on your Navidrome installation; this mod does not run a music server inside Minecraft and does not need to be installed on the Minecraft server.
 
-> **Status: source preview, not a tested release.** Four targets are configured, but there is no verified downloadable JAR yet. The sandbox used to write this code has no Java installation and cannot reach the Gradle/Maven download hosts, so the builds and game launch could **not** be run here. Please build and test on a machine with network access before installing; please don't distribute these sources as verified binaries.
+> **Status: CI-built preview, not an in-game-tested release.** The [build workflow](https://github.com/OmniNodeCo/Navidrome-mod/actions/workflows/build.yml) passes protocol tests and produces downloadable artifacts for all four targets (retained for 14 days). CI checks compilation and JAR contents, but has not launched the mod in Minecraft or connected it to a real Navidrome server. Test your loader/version combination before relying on it; full Navidrome feature parity is not yet implemented.
 
 ## Target matrix
 
