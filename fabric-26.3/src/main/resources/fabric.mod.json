@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "navidrome",
+  "version": "${version}",
+  "name": "Navidrome for Minecraft",
+  "description": "Personal music player for an existing Navidrome / OpenSubsonic server.",
+  "authors": ["OmniNodeCo contributors"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.omninode.navidrome.fabric.Fabric26Client"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "${minecraft_version}",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

@@ -1,0 +1,10 @@
+# Gradle, IDE and Minecraft development runs
+.gradle/
+**/build/
+**/run/
+**/.idea/
+*.iml
+*.log
+# Never commit client settings or credentials
+config/navidrome-client.properties
+navidrome-client.properties

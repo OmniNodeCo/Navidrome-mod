@@ -1,0 +1,65 @@
+name: Build all four Minecraft targets
+
+on:
+  push:
+    branches: ['**'] # tags are handled by release.yml instead
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: OpenSubsonic protocol tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew --no-daemon :protocol-tests:test
+
+  build:
+    name: ${{ matrix.target }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fabric-26.2, fabric-26.3, neoforge-26.2, neoforge-26.3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build ${{ matrix.target }}
+        run: ./gradlew --no-daemon :${{ matrix.target }}:build
+      - name: Verify and stage the installable mod JAR
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n "s/^[[:space:]]*version = '\([^']*\)'.*/\1/p" build.gradle)
+          test -n "$version"
+          jar_path="$TARGET/build/libs/navidrome-$TARGET-$version.jar"
+          test -s "$jar_path" || { echo "Missing installable JAR: $jar_path"; ls -la "$TARGET/build/libs"; exit 1; }
+          jar tf "$jar_path" > jar-contents.txt
+          grep -Fxq 'dev/omninode/navidrome/client/MusicScreen.class' jar-contents.txt
+          mkdir -p release-output
+          cp "$jar_path" release-output/
+          sha256sum "release-output/$(basename "$jar_path")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: navidrome-${{ matrix.target }}
+          path: release-output/*.jar
+          if-no-files-found: error
+          retention-days: 14

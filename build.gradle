@@ -1,0 +1,9 @@
+plugins { id 'base' }
+
+allprojects {
+    group = 'dev.omninode.navidrome'
+    version = '0.1.0'
+}
+
+// `./gradlew build` compiles all four distinct loader/game-version artifacts.
+// Pure protocol tests run independently of Minecraft through :protocol-tests:test.

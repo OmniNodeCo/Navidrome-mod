@@ -1,0 +1,21 @@
+license="MIT"
+
+[[mods]]
+modId="navidrome"
+version="${mod_version}"
+displayName="Navidrome for Minecraft"
+description='''Connect to your own Navidrome server and listen to your music in Minecraft.'''
+
+[[dependencies.navidrome]]
+modId="neoforge"
+type="required"
+versionRange="[${neo_version},)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.navidrome]]
+modId="minecraft"
+type="required"
+versionRange="[${minecraft_version}]"
+ordering="NONE"
+side="CLIENT"

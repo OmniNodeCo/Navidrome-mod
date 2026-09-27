@@ -1,0 +1,28 @@
+base { archivesName = "navidrome-fabric-${project.minecraft_version}" }
+
+java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
+
+def shared = rootProject.file('src/shared')
+sourceSets.main.java.srcDir "${shared}/java"
+sourceSets.main.resources.srcDir "${shared}/resources"
+
+repositories { mavenCentral() }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation 'net.fabricmc:fabric-loader:0.19.5'
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // Pure Java streaming MP3 decoder. Loom nests this library in the distributable mod jar.
+    implementation 'fr.delthas:javamp3:1.0.1'
+    include 'fr.delthas:javamp3:1.0.1'
+}
+
+processResources {
+    def replacements = [version: project.version.toString(), minecraft_version: project.minecraft_version]
+    inputs.properties replacements
+    filesMatching('fabric.mod.json') { expand replacements }
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
+jar { from(rootProject.file('LICENSE')) { rename { 'LICENSE_navidrome' } } }

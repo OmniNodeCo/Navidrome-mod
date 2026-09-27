@@ -1,0 +1,37 @@
+base { archivesName = "navidrome-neoforge-${project.minecraft_version}" }
+
+java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
+
+def shared = rootProject.file('src/shared')
+sourceSets.main.java.srcDir "${shared}/java"
+sourceSets.main.resources.srcDir "${shared}/resources"
+
+repositories { mavenCentral() }
+
+neoForge {
+    version = project.neo_version
+    runs { client { client() } }
+    mods { navidrome { sourceSet(sourceSets.main) } }
+}
+
+dependencies {
+    // ModDevGradle nests the MP3 decoder in the shipped jar (not only the dev runtime).
+    jarJar(implementation('fr.delthas:javamp3:1.0.1')) {
+        version { strictly '[1.0.1]'; prefer '1.0.1' }
+    }
+}
+
+def metadata = tasks.register('generateModMetadata', ProcessResources) {
+    def vars = [mod_version: project.version.toString(),
+                minecraft_version: project.minecraft_version,
+                neo_version: project.neo_version]
+    inputs.properties vars
+    expand vars
+    from rootProject.file('src/neoforge/templates')
+    into layout.buildDirectory.dir('generated/modMetadata')
+}
+sourceSets.main.resources.srcDir metadata
+neoForge.ideSyncTask metadata
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
+jar { from(rootProject.file('LICENSE')) { rename { 'LICENSE_navidrome' } } }

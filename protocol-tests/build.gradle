@@ -1,0 +1,19 @@
+plugins { id 'java-library' }
+
+java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
+
+// Compile the actual production protocol sources; tests don't need Minecraft or a loader.
+sourceSets.main.java {
+    srcDir rootProject.file('src/shared/java')
+    include 'dev/omninode/navidrome/api/**'
+    include 'dev/omninode/navidrome/client/ConnectionStore.java'
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test { useJUnitPlatform() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
