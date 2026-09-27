@@ -22,7 +22,17 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/wrapper-validation@v4
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew --no-daemon :protocol-tests:test
+      - name: Run OpenSubsonic protocol tests
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon :protocol-tests:test 2>&1 | tee gradle-test.log || {
+            message=$(tail -n 100 gradle-test.log)
+            message=${message//'%'/'%25'}
+            message=${message//$'\n'/'%0A'}
+            echo "::error title=Protocol tests failed::$message"
+            exit 1
+          }
 
   build:
     name: ${{ matrix.target }}
@@ -41,7 +51,16 @@ jobs:
       - uses: gradle/actions/wrapper-validation@v4
       - uses: gradle/actions/setup-gradle@v4
       - name: Build ${{ matrix.target }}
-        run: ./gradlew --no-daemon :${{ matrix.target }}:build
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon :${{ matrix.target }}:build 2>&1 | tee gradle-build.log || {
+            message=$(tail -n 100 gradle-build.log)
+            message=${message//'%'/'%25'}
+            message=${message//$'\n'/'%0A'}
+            echo "::error title=Mod build failed::$message"
+            exit 1
+          }
       - name: Verify and stage the installable mod JAR
         shell: bash
         env:
