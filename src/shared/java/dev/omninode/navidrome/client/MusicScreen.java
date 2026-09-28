@@ -57,7 +57,9 @@ public final class MusicScreen extends Screen {
     private Button previousPage;
     private Button nextPage;
     private Button folderButton;
+    private Button backButton;
     private Button pauseButton;
+    private Button skipButton;
     private EditBox address, username, secret, searchBox, playlistName;
     private SubsonicClient.Auth auth = SubsonicClient.Auth.PASSWORD;
     private boolean allowHttp;
@@ -87,8 +89,8 @@ public final class MusicScreen extends Screen {
             button(8 + i * tabWidth, 24, tabWidth - 1, names[i], () -> go(page));
         }
         header();
-        previousPage = button(8, height - 81, 42, "< Page", () -> turn(-1));
-        nextPage = button(width - 50, height - 81, 42, "Page >", () -> turn(1));
+        previousPage = button(8, height - 101, 42, "< Page", () -> turn(-1));
+        nextPage = button(width - 50, height - 101, 42, "Page >", () -> turn(1));
         previousPage.active = false;
         nextPage.active = false;
         boolean paged = switch (view.page) {
@@ -224,36 +226,42 @@ public final class MusicScreen extends Screen {
     }
 
     private void playerControls() {
-        // Compact labels fit the default 320px Minecraft GUI, with seek controls at ±10s.
-        String[] labels = { "|<", "-10", app.player().state() == MusicPlayer.State.PAUSED ? ">" : "||",
-                "+10", ">|", "[]", "Sf", "Rp", "V-", "V+", "Rt", "Ly" };
+        MusicPlayer player = app.player();
+        // Give the transport controls their own full-width row so they are usable at 320px.
+        int transportStep = (width - 16) / 3;
+        backButton = button(8, height - 50, transportStep - 1, "Back", () -> {
+            player.previous(); refreshTransportButtons();
+        });
+        pauseButton = button(8 + transportStep, height - 50, transportStep - 1, "Play", () -> {
+            player.togglePause(); refreshTransportButtons();
+        });
+        skipButton = button(8 + 2 * transportStep, height - 50, transportStep - 1, "Skip", () -> {
+            player.next(); refreshTransportButtons();
+        });
+        refreshTransportButtons();
+
+        // Keep seek, stop, shuffle, repeat, volume, rating and lyrics on a compact second row.
+        String[] labels = { "-10", "+10", "Stop", "Shf", "Rpt", "V-", "V+", "Rate", "Ly" };
         int step = (width - 16) / labels.length;
         for (int i = 0; i < labels.length; i++) {
             final int action = i;
-            Button control = button(8 + i * step, height - 28, step - 1, labels[i], () -> {
-                MusicPlayer player = app.player();
+            button(8 + i * step, height - 28, step - 1, labels[i], () -> {
                 switch (action) {
-                    case 0 -> player.previous();
-                    case 1 -> player.seek(player.position() - 10);
-                    case 2 -> {
-                        player.togglePause();
-                        pauseButton.setMessage(label(player.state() == MusicPlayer.State.PAUSED ? ">" : "||"));
-                    }
-                    case 3 -> player.seek(player.position() + 10);
-                    case 4 -> player.next();
-                    case 5 -> player.stop();
-                    case 6 -> player.toggleShuffle();
-                    case 7 -> player.cycleRepeat();
-                    case 8 -> app.rememberVolume(player.volume() - .1f);
-                    case 9 -> app.rememberVolume(player.volume() + .1f);
-                    case 10 -> {
+                    case 0 -> player.seek(player.position() - 10);
+                    case 1 -> player.seek(player.position() + 10);
+                    case 2 -> { player.stop(); refreshTransportButtons(); }
+                    case 3 -> player.toggleShuffle();
+                    case 4 -> player.cycleRepeat();
+                    case 5 -> app.rememberVolume(player.volume() - .1f);
+                    case 6 -> app.rememberVolume(player.volume() + .1f);
+                    case 7 -> {
                         Song current = player.current();
                         if (current != null) {
                             view.rating = (view.rating + 1) % 6;
                             change(app.api().rate(current.id(), view.rating), "Rated " + view.rating + "/5");
                         }
                     }
-                    case 11 -> {
+                    case 8 -> {
                         if (view.page != Page.LYRICS) {
                             view.returnTo = view.page;
                             go(Page.LYRICS);
@@ -262,8 +270,18 @@ public final class MusicScreen extends Screen {
                     default -> throw new IllegalStateException();
                 }
             });
-            if (i == 2) pauseButton = control;
         }
+    }
+
+    private void refreshTransportButtons() {
+        MusicPlayer player = app.player();
+        boolean hasTrack = player.current() != null;
+        backButton.active = hasTrack;
+        pauseButton.active = hasTrack;
+        skipButton.active = hasTrack;
+        String text = player.state() == MusicPlayer.State.PAUSED || player.state() == MusicPlayer.State.STOPPED
+                ? "Play" : "Pause";
+        if (!pauseButton.getMessage().getString().equals(text)) pauseButton.setMessage(label(text));
     }
 
     private void loadPage() {
@@ -444,8 +462,8 @@ public final class MusicScreen extends Screen {
             app.rememberBitrate(rates[next]);
             reopen();
         });
-        button(8, 128, 118, "Scan library", () -> change(api().startScan(false), "Scan requested.", true));
-        button(132, 128, 118, "Full scan", () -> change(api().startScan(true), "Full scan requested.", true));
+        button(8, 124, 118, "Scan library", () -> change(api().startScan(false), "Scan requested.", true));
+        button(132, 124, 118, "Full scan", () -> change(api().startScan(true), "Full scan requested.", true));
         if (!api().username().isBlank()) load(api().user(), result -> view.user = result);
         api().scanStatus().thenAccept(result -> Minecraft.getInstance().execute(() -> view.scan = result))
                 .exceptionally(error -> null);
@@ -505,7 +523,8 @@ public final class MusicScreen extends Screen {
         reopen();
     }
 
-    private int rowsPerPage() { return Math.max(2, (height - 87 - 78) / 22); }
+    // Leave room for pagination, status, now-playing and both rows of playback controls.
+    private int rowsPerPage() { return Math.max(1, (height - 179) / 22); }
     private String folder() {
         if (view.folders == null || view.folderIndex < 0 || view.folderIndex >= view.folders.size()) return null;
         return view.folders.get(view.folderIndex).id();
@@ -572,6 +591,8 @@ public final class MusicScreen extends Screen {
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        // Playback can change in the background (buffering, end of a track, or queue changes).
+        if (pauseButton != null) refreshTransportButtons();
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.text(font, "Navidrome  •  " + view.page.name().toLowerCase(), 8, 8, 0xffb0e6dc, true);
         if (app.connected() && !loading && rows.isEmpty() && view.page == Page.QUEUE)
@@ -600,9 +621,9 @@ public final class MusicScreen extends Screen {
             if (view.user != null) graphics.text(font, shorten("Signed in: " + view.user.username()
                     + (view.user.admin() ? " (admin)" : ""), width - 16), 8, 68, 0xffdddddd, false);
             if (view.scan != null) graphics.text(font, "Scanning: " + view.scan.scanning()
-                    + "  Files: " + view.scan.count(), 8, 152, 0xffdddddd, false);
+                    + "  Files: " + view.scan.count(), 8, 144, 0xffdddddd, false);
             graphics.text(font, shorten("Users & transcoding: manage in Navidrome web UI.", width - 16),
-                    8, 164, 0xffaaaaaa, false);
+                    8, 154, 0xffaaaaaa, false);
         }
         if (app.connected()) {
             int per = rowsPerPage();
@@ -621,12 +642,16 @@ public final class MusicScreen extends Screen {
                     + "   " + clock(player.position()) + "/" + clock(now.duration())
                     + "   " + player.state() + "   " + (player.shuffle() ? "Shuffle " : "")
                     + player.repeat() + "   Vol " + (int) (player.volume() * 100) + "%";
-            graphics.text(font, shorten(info, width - 16), 8, height - 49, 0xfff3eedc, false);
+            graphics.text(font, shorten(info, width - 16), 8, height - 62, 0xfff3eedc, false);
         } else {
             graphics.text(font, "Connect to your existing Navidrome server. Password stays in memory.",
                     8, height - 37, 0xffb0e6dc, false);
         }
-        if (!app.status().isBlank()) graphics.text(font, shorten(app.status(), width - 16), 8, height - 61, 0xffe6c98d, false);
+        if (!app.status().isBlank()) {
+            int statusWidth = app.connected() && width >= 400 && artId() != null ? width - 126 : width - 16;
+            graphics.text(font, shorten(app.status(), statusWidth), 8,
+                    height - (app.connected() ? 74 : 61), 0xffe6c98d, false);
+        }
     }
 
     private static String clock(int seconds) { return (seconds / 60) + ":" + String.format("%02d", seconds % 60); }
