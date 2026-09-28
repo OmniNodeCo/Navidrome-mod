@@ -2,7 +2,7 @@ plugins { id 'base' }
 
 allprojects {
     group = 'dev.omninode.navidrome'
-    version = '0.1.0'
+    version = '0.1.1'
 }
 
 // `./gradlew build` compiles all four distinct loader/game-version artifacts.
